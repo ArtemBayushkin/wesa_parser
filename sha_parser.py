@@ -45,11 +45,11 @@ class ShaProcessorWinAPI:
              lambda m: f"{m.group(1)}{self.replacement_digit}"),
 
             # N0&&&&&BQ2200 → замена N
-            (re.compile(r'(\d)(0&&&&&[A-Z]{2}\d{4})', flags=re.IGNORECASE),
+            (re.compile(r'([1-9])(0&&&&&[A-Z]{2}\d{4})'),
              lambda m: f"{self.replacement_digit}{m.group(2)}"),
 
             # N0KTC → замена N
-            (re.compile(r'(\d)(0[A-Z]{3})', flags=re.IGNORECASE),
+            (re.compile(r'([1-9])(0[A-Z]{3})'),
              lambda m: f"{self.replacement_digit}{m.group(2)}"),
 
             # alt="C0N" → alt="C01"
@@ -129,28 +129,13 @@ class ShaProcessorWinAPI:
         return False
 
     def _process_group(self, group, group_name, depth=0):
-        if depth > 5:
+        if depth > 3:
             return False
         changes = False
 
         try:
             if hasattr(group, "Item") and hasattr(group, "Count"):
 
-                item1 = group.Item(1)
-                if self._replace_text_generic(item1, f"{group_name}.Item1"):
-                    return True
-
-                # Если группа короткая (< 5 элементов) → пропускаем
-                if group.Count < 5:
-                    self._log(f"[{group_name}] Пропуск: элементов меньше 5")
-                    return False
-
-                # 2. Проверяем 5-й элемент
-                item5 = group.Item(5)
-                if self._replace_text_generic(item5, f"{group_name}.Item5"):
-                    return True  # нашли текст → больше не обходим
-
-                # 3. Если 5-й элемент не текст → проходим всю группу с начала
                 for i in range(1, group.Count + 1):
                     try:
                         item = group.Item(i)
