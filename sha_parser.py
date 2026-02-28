@@ -14,7 +14,7 @@ import win32com.client
 import pythoncom
 import pywintypes
 import time
-
+import logging
 
 def get_license_servers_from_registry():
     """
@@ -112,7 +112,7 @@ class ShaProcessorWinAPI:
         - Для корректной работы должны быть доступны серверы лицензирования SmartSketch.
         - Правила замены должны быть корректно сформированы, поскольку используются через eval().
     """
-    def __init__(self, replacement_digit, project, rules, log_callback=None, debug=False):
+    def __init__(self, replacement_digit, project, rules, logger=None):
         """
         Инициализирует экземпляр ShaProcessorWinAPI.
 
@@ -126,9 +126,9 @@ class ShaProcessorWinAPI:
         :param debug: Включает отладочное логирование.
         """
         self.replacement_digit = str(replacement_digit)    # цифра, которая участвует в заменах.
-        self.debug = debug                                 # словарь с регулярками для поиска/замены текста.
-        self.log = log_callback or (lambda msg: None)      # функция для логирования
-        self._log(f"Инициализация ShaProcessorWinAPI с цифрой: {self.replacement_digit} и проектом: {project}")
+        
+        self.logger = logger or logging.getLogger()
+        self.logger.log(logging.DEBUG, f"Инициализация ShaProcessorWinAPI с цифрой: {self.replacement_digit} и проектом: {project}")
 
         self.patterns = self._load_patterns(rules)         # загружаем и компилируем правила замен
 
@@ -153,32 +153,10 @@ class ShaProcessorWinAPI:
                 except Exception as e:
                     self._log(f"Ошибка загрузки правила '{rule_name}': {e}")
         except Exception as e:
-            self._log(f"Ошибка обработки rules: {e}")
+            self.logger.log(logging.ERROR, f"Ошибка обработки rules: {e}")
         if not patterns:
-            self._log("Предупреждение: Нет patterns для этого парсера")
+            self.logger.log(logging.DEBUG,"Предупреждение: Нет patterns для этого парсера")
         return patterns
-
-    def _log(self, message):
-        '''
-        Внутренний метод логирования.
-        Проверяет, нужно ли логгировать (debug или always_log по префиксам), и вызывает self.log.
-        :param message: Сообщение для логирования.
-        :return: None
-        '''
-        always_log = (
-            message.startswith("Успешно: ") or
-            message.startswith("Ошибка обработки: ") or
-            message.startswith("Критическая ошибка ") or
-            message.startswith("Файлы не найдены.") or
-            message.startswith("Пропуск ") or
-            message.startswith("Документ сохранён: ") or
-            message.startswith("SmartSketch запущен успешно") or
-            message.startswith("SmartSketch закрыт") or
-            message.startswith("COM ошибка при обработке ") or
-            message.startswith("Ошибка обработки ")
-        )
-        if self.debug or always_log:
-            self.log(message)
 
     def start_app(self):
         """
@@ -192,15 +170,15 @@ class ShaProcessorWinAPI:
         servers = get_license_servers_from_registry()
         if servers:
             os.environ["INGR_LICENSE_PATH"] = servers
-            self._log(f"[ЛИЦЕНЗИИ] Используются сервера: {servers}")
+            self.logger.log(logging.DEBUG,f"[ЛИЦЕНЗИИ] Используются сервера: {servers}")
         else:
-            self._log("[ЛИЦЕНЗИИ] Не удалось найти сервера в реестре")
+            self.logger.log(logging.DEBUG,"[ЛИЦЕНЗИИ] Не удалось найти сервера в реестре")
 
         try:
             self.app = win32com.client.Dispatch("Shape2DServer.Application")
-            self._log("SmartSketch запущен успешно")
+            self.logger.log(logging.DEBUG, "SmartSketch запущен успешно")
         except Exception as e:
-            self._log(f"Ошибка запуска SmartSketch: {e}")
+            self.logger.log(logging.ERROR, f"Ошибка запуска SmartSketch: {e}")
             self.stop_app()
             raise
 
@@ -214,9 +192,9 @@ class ShaProcessorWinAPI:
         try:
             if self.app:
                 self.app.Quit()
-                self._log("SmartSketch закрыт")
+                self.logger.log(logging.DEBUG, "SmartSketch закрыт")
         except Exception as e:
-            self._log(f"Ошибка при закрытии SmartSketch: {e}")
+            self.logger.log(logging.ERROR, f"Ошибка при закрытии SmartSketch: {e}")
         finally:
             self.app = None
             pythoncom.CoUninitialize()
@@ -242,7 +220,7 @@ class ShaProcessorWinAPI:
                         self._log(f"[ИЗМЕНЕНО] {obj_name}: '{original_text}' → '{text}'")
                         return True
         except Exception as e:
-            self._log(f"[ОШИБКА] {obj_name}: {e}")
+            self.logger.log(logging.DEBUG, f"[ОШИБКА] {obj_name}: {e}")
         return False
 
     def _process_group(self, group, group_name, depth=0):
@@ -301,7 +279,7 @@ class ShaProcessorWinAPI:
                         try:
                             setattr(obj, prop, new_val)
                             changed = True
-                            self._log(f"[ИЗМЕНЕНО] {obj_name}.{prop}: '{val}' → '{new_val}'")
+                            self.logger.log(logging.DEBUG, f"[ИЗМЕНЕНО] {obj_name}.{prop}: '{val}' → '{new_val}'")
                         except Exception:
                             pass
         return changed
@@ -326,7 +304,7 @@ class ShaProcessorWinAPI:
             changes_made = False
 
             for sheet_idx, sheet in enumerate(doc.Sheets, start=1):
-                self._log(f"--- Лист {sheet_idx}/{doc.Sheets.Count} ---")
+                self.logger.log(logging.DEBUG, f"--- Лист {sheet_idx}/{doc.Sheets.Count} ---")
 
                 if hasattr(sheet, "TextBoxes") and sheet.TextBoxes is not None:
                     for tb_idx, tb in enumerate(sheet.TextBoxes, start=1):
@@ -340,18 +318,18 @@ class ShaProcessorWinAPI:
 
             if changes_made:
                 doc.SaveAs(output_path)
-                self._log(f"Документ сохранён: {output_path}")
+                self.logger.log(logging.DEBUG, f"Документ сохранён: {output_path}")
             else:
-                self._log(f"Изменений не найдено, сохранение пропущено")
+                self.logger.log(logging.DEBUG, f"Изменений не найдено, сохранение пропущено")
 
             return True
 
         except pywintypes.com_error as e:
-            self._log(f"COM ошибка при обработке {input_path}: {e}")
+            self.logger.log(logging.DEBUG, f"COM ошибка при обработке {input_path}: {e}")
             return False
 
         except Exception as e:
-            self._log(f"Ошибка обработки {input_path}: {e}")
+            self.logger.log(logging.ERROR, f"Ошибка обработки {input_path}: {e}")
             return False
 
         finally:

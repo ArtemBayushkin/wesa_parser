@@ -1,0 +1,708 @@
+{
+  "АЭС Эль-Дабаа Блоки 1 и 2": {
+    "digits": [["1", "1"], ["2", "2"]],
+	"file_rename": {
+		"block_number_in_filename": {
+        	"pattern": "re.compile(r'\\b(ED\\.[A-Z]\\.[A-Z]\\d{3}\\.)(\\d)(\\.)')",
+        	"replacement": "lambda m: f'{m.group(1)}{replacement_digit}{m.group(3)}'"
+      },
+      	"starts_with_digit": {
+        	"pattern": "re.compile(r'^(\\d)(.*)')",
+        	"replacement": "lambda m: f'{replacement_digit}{m.group(2)}'"
+      }
+    },
+    "excel_parser": {
+		"ED.D.P000.x... - в тексте": {
+			"pattern": "re.compile(r'\\b(ED\\.D\\.[A-Z]\\d\\d\\d\\.)\\d')",
+			"replacement": "lambda m: f'{m.group(1)}{self.replacement_digit}'"
+		},
+		"10UKD...": {
+			"pattern": "re.compile(r'\\b([0-9])(0[A-Z]{3})')",
+			"replacement": "lambda m: f'{self.replacement_digit}{m.group(2)}'"
+		},
+		"C02 -> C01(первая замена)": {
+			"pattern": "re.compile(r'(&R&\\d\\dC0)[2-9]\\b')",
+			"replacement": "lambda m: f'{m.group(1)}1'"
+		},
+		"C02 -> C01(вторая замена)": {
+			"pattern": "re.compile(r'&RC0[2-9]\\b')",
+			"replacement": "'&RC01'"
+		},
+		"ED.D.P000.x... - нижний колонтитул": {
+			"pattern": "re.compile(r'((?:&[LCR](?:&\\d{2})?)?ED\\.D\\.[A-Z]\\d\\d\\d\\.)\\d')",
+			"replacement": "lambda m: f'{m.group(1)}{self.replacement_digit}'"
+		}
+    },
+    "word_parser": {
+		"ED.D.P000.x... - в тексте": {
+			"pattern": "re.compile(r'\\b(ED\\.D\\.[A-Z]\\d\\d\\d\\.)\\d\\b')",
+			"replacement": "lambda m: f'{m.group(1)}{self.replacement_digit}'"
+		},
+		"10KBC50BR...": {
+			"pattern": "re.compile(r'([0-9])(0[A-Z]{3}\\d\\d[A-Z]{2}\\d{3})')",
+			"replacement": "lambda m: f'{self.replacement_digit}{m.group(2)}'"
+		},
+		"(10UKD)": {
+			"pattern": "re.compile(r'\\b([0-9])0(([A-Z]{3}))\\b')",
+			"replacement": "lambda m: f'{self.replacement_digit}0{m.group(2)}'"
+		},
+		"C02 -> C01": {
+			"pattern": "re.compile(r'C0[2-9]\\b')",
+			"replacement": "'C01'"
+		},
+		"Блок № x": {
+			"pattern": "re.compile(r'(блока №\\s*)\\d\\b', re.IGNORECASE)",
+			"replacement": "lambda m: f'{m.group(1)}{self.replacement_digit}'"
+		},
+		"unit x": {
+			"pattern": "re.compile(r'(Unit\\s*)\\d\\b', re.IGNORECASE)",
+			"replacement": "lambda m: f'{m.group(1)}{self.replacement_digit}'"
+		},
+		"ED.D.P000.W... - в тексте": {
+			"pattern": "re.compile(r'\\b(ED\\.B\\.[A-Z]\\d\\d\\d\\.\\.)W')",
+			"replacement": "lambda m: f'{m.group(1)}S'"
+		}
+    },
+    "dwg_parser": {
+		"ED.D.P000.x... - в тексте": {
+			"pattern": "re.compile(r'(ED\\.D\\.[A-Z]\\d{3}\\.)\\d')",
+			"replacement": "lambda m: f'{m.group(1)}{self.replacement_digit}'"
+		},
+		"10UKA05R421_или_10KUB21AX001": {
+  			"pattern": "re.compile(r'(\\b|\\s)?\\d(\\d[A-Z]{3}\\d\\d[A-Z]{1,2}\\d{3,4})(\\b|\\s)?')",
+  			"replacement": "lambda m: f'{m.group(1) or ''}{self.replacement_digit}{m.group(2)}{m.group(3) or ''}'"
+		},
+		"10KBC50BR...": {
+			"pattern": "re.compile(r'([0-9])(0[A-Z]{3}\\d\\d[A-Z]{2}\\d{3})')",
+			"replacement": "lambda m: f'{self.replacement_digit}{m.group(2)}'"
+		},
+		"(10UKA)": {
+			"pattern": "re.compile(r'\\((\\d{2}[A-Z])\\)')",
+			"replacement": "lambda m: f'{self.replacement_digit}{m.group(1)[1:]}'"
+		},
+		"10KBC10": {
+			"pattern": "re.compile(r'\\b\\d\\d[A-Z]{3}\\d\\d\\b')",
+			"replacement": "lambda m: self.replacement_digit + m.group(0)[1:]"
+		},
+		"10KBC": {
+  			"pattern": "re.compile(r'\\b([0-9])0([A-Z]{3})\\b')",
+  			"replacement": "lambda m: f'{self.replacement_digit}0{m.group(2)}'"
+		},
+		"C0x-C01": {
+			"pattern": "re.compile(r'C0[2-9]\\b')",
+			"replacement": "'C01'"
+		},
+		"Unit x": {
+			"pattern": "re.compile(r'(Unit )\\d\\b', flags=re.IGNORECASE)",
+			"replacement": "lambda m: f'{m.group(1)}{self.replacement_digit}'"
+		},
+		"Блок x": {
+			"pattern": "re.compile(r'(Блок )\\d\\b', flags=re.IGNORECASE)",
+			"replacement": "lambda m: f'{m.group(1)}{self.replacement_digit}'"
+		}
+    },
+    "sha_parser": {
+		"ED.D.P000.x... - в тексте": {
+			"pattern": "re.compile(r'\\b(ED\\.D\\.[A-Z]\\d{3}\\.)\\d')",
+			"replacement": "lambda m: f'{m.group(1)}{self.replacement_digit}'"
+		},
+		"x0&&&&&BQ2200": {
+			"pattern": "re.compile(r'([1-9])(0&&&&&[A-Z]{2}\\d{4})')",
+			"replacement": "lambda m: f'{self.replacement_digit}{m.group(2)}'"
+		},
+		"10KBC": {
+			"pattern": "re.compile(r'([1-9])(0[A-Z]{3})')",
+			"replacement": "lambda m: f'{self.replacement_digit}{m.group(2)}'"
+		},
+		"alt=C0x - alt=C01": {
+			"pattern": "re.compile(re.escape(r'<?xml version=\"1.0\"?><body><intstgxml stream=\"Revision\" select=\"/Revision/RevisionRecord[last()-0]/MajorRev_ForRevise\" alt=\"C01\"/><intstgxml stream=\"Revision\" select=\"/Revision/RevisionRecord[last()-0]/MinorRev_ForRevise\" alt=\"\"/></body>'))",
+			"replacement": "'C01'"
+		},
+		"C0x - C01": {
+			"pattern": "re.compile(r'\\bC0[2-9]\\b')",
+			"replacement": "'C01'"
+		}
+    }
+  },
+  "АЭС Эль-Дабаа Блоки 3 и 4": {
+    "digits": [["3", "3"], ["4", "4"]],
+	"file_rename": {
+		"block_number_in_filename": {
+        	"pattern": "re.compile(r'\\b(ED\\.[A-Z]\\.[A-Z]\\d{3}\\.)(\\d)(\\.)')",
+        	"replacement": "lambda m: f'{m.group(1)}{replacement_digit}{m.group(3)}'"
+      },
+      	"starts_with_digit": {
+        	"pattern": "re.compile(r'^(\\d)(.*)')",
+        	"replacement": "lambda m: f'{replacement_digit}{m.group(2)}'"
+      }
+    },
+    "excel_parser": {
+		"ED.D.P000.x... - в тексте": {
+			"pattern": "re.compile(r'\\b(ED\\.D\\.[A-Z]\\d\\d\\d\\.)\\d')",
+			"replacement": "lambda m: f'{m.group(1)}{self.replacement_digit}'"
+		},
+		"10UKD...": {
+			"pattern": "re.compile(r'\\b([0-9])(0[A-Z]{3})')",
+			"replacement": "lambda m: f'{self.replacement_digit}{m.group(2)}'"
+		},
+		"C02 -> C01(первая замена)": {
+			"pattern": "re.compile(r'(&R&\\d\\dC0)[2-9]\\b')",
+			"replacement": "lambda m: f'{m.group(1)}1'"
+		},
+		"C02 -> C01(вторая замена)": {
+			"pattern": "re.compile(r'&RC0[2-9]\\b')",
+			"replacement": "'&RC01'"
+		},
+		"ED.D.P000.x... - нижний колонтитул": {
+			"pattern": "re.compile(r'((?:&[LCR](?:&\\d{2})?)?ED\\.D\\.[A-Z]\\d\\d\\d\\.)\\d')",
+			"replacement": "lambda m: f'{m.group(1)}{self.replacement_digit}'"
+		}
+    },
+    "word_parser": {
+		"ED.D.P000.x... - в тексте": {
+			"pattern": "re.compile(r'\\b(ED\\.D\\.[A-Z]\\d\\d\\d\\.)\\d\\b')",
+			"replacement": "lambda m: f'{m.group(1)}{self.replacement_digit}'"
+		},
+		"10KBC50BR...": {
+			"pattern": "re.compile(r'([0-9])(0[A-Z]{3}\\d\\d[A-Z]{2}\\d{3})')",
+			"replacement": "lambda m: f'{self.replacement_digit}{m.group(2)}'"
+		},
+		"(10UKD)": {
+			"pattern": "re.compile(r'\\b([0-9])0(([A-Z]{3}))\\b')",
+			"replacement": "lambda m: f'{self.replacement_digit}0{m.group(2)}'"
+		},
+		"C02 -> C01": {
+			"pattern": "re.compile(r'C0[2-9]\\b')",
+			"replacement": "'C01'"
+		},
+		"Блок № x": {
+			"pattern": "re.compile(r'(блока №\\s*)\\d\\b', re.IGNORECASE)",
+			"replacement": "lambda m: f'{m.group(1)}{self.replacement_digit}'"
+		},
+		"unit x": {
+			"pattern": "re.compile(r'(Unit\\s*)\\d\\b', re.IGNORECASE)",
+			"replacement": "lambda m: f'{m.group(1)}{self.replacement_digit}'"
+		},
+		"ED.B.P000.S... - в тексте": {
+			"pattern": "re.compile(r'\\b(ED\\.B\\.[A-Z]\\d\\d\\d\\.)S')",
+			"replacement": "lambda m: f'{m.group(1)}W'"
+		}
+    },
+    "dwg_parser": {
+		"ED.D.P000.x... - в тексте": {
+			"pattern": "re.compile(r'(ED\\.D\\.[A-Z]\\d{3}\\.)\\d')",
+			"replacement": "lambda m: f'{m.group(1)}{self.replacement_digit}'"
+		},
+		"10UKA05R421_или_10KUB21AX001": {
+  			"pattern": "re.compile(r'(\\b|\\s)?\\d(\\d[A-Z]{3}\\d\\d[A-Z]{1,2}\\d{3,4})(\\b|\\s)?')",
+  			"replacement": "lambda m: f'{m.group(1) or ''}{self.replacement_digit}{m.group(2)}{m.group(3) or ''}'"
+		},
+		"10KBC50BR...": {
+			"pattern": "re.compile(r'([0-9])(0[A-Z]{3}\\d\\d[A-Z]{2}\\d{3})')",
+			"replacement": "lambda m: f'{self.replacement_digit}{m.group(2)}'"
+		},
+		"(10UKA)": {
+			"pattern": "re.compile(r'\\((\\d{2}[A-Z])\\)')",
+			"replacement": "lambda m: f'{self.replacement_digit}{m.group(1)[1:]}'"
+		},
+		"10KBC10": {
+			"pattern": "re.compile(r'\\b\\d\\d[A-Z]{3}\\d\\d\\b')",
+			"replacement": "lambda m: self.replacement_digit + m.group(0)[1:]"
+		},
+		"10KBC": {
+  			"pattern": "re.compile(r'\\b([0-9])0([A-Z]{3})\\b')",
+  			"replacement": "lambda m: f'{self.replacement_digit}0{m.group(2)}'"
+		},
+		"C0x-C01": {
+			"pattern": "re.compile(r'C0[2-9]\\b')",
+			"replacement": "'C01'"
+		},
+		"Unit x": {
+			"pattern": "re.compile(r'(Unit )\\d\\b', flags=re.IGNORECASE)",
+			"replacement": "lambda m: f'{m.group(1)}{self.replacement_digit}'"
+		},
+		"Блок x": {
+			"pattern": "re.compile(r'(Блок )\\d\\b', flags=re.IGNORECASE)",
+			"replacement": "lambda m: f'{m.group(1)}{self.replacement_digit}'"
+		}
+    },
+    "sha_parser": {
+		"ED.D.P000.x... - в тексте": {
+			"pattern": "re.compile(r'\\b(ED\\.D\\.[A-Z]\\d{3}\\.)\\d')",
+			"replacement": "lambda m: f'{m.group(1)}{self.replacement_digit}'"
+		},
+		"x0&&&&&BQ2200": {
+			"pattern": "re.compile(r'([1-9])(0&&&&&[A-Z]{2}\\d{4})')",
+			"replacement": "lambda m: f'{self.replacement_digit}{m.group(2)}'"
+		},
+		"10KBC": {
+			"pattern": "re.compile(r'([1-9])(0[A-Z]{3})')",
+			"replacement": "lambda m: f'{self.replacement_digit}{m.group(2)}'"
+		},
+		"alt=C0x - alt=C01": {
+			"pattern": "re.compile(re.escape(r'<?xml version=\"1.0\"?><body><intstgxml stream=\"Revision\" select=\"/Revision/RevisionRecord[last()-0]/MajorRev_ForRevise\" alt=\"C01\"/><intstgxml stream=\"Revision\" select=\"/Revision/RevisionRecord[last()-0]/MinorRev_ForRevise\" alt=\"\"/></body>'))",
+			"replacement": "'C01'"
+		},
+		"C0x - C01": {
+			"pattern": "re.compile(r'\\bC0[2-9]\\b')",
+			"replacement": "'C01'"
+		}
+    }
+  },
+  "ЛАЭС Блок 3": {
+	"digits": [["3", "3"]],
+	"file_rename": {
+		"block_number_in_filename": {
+        	"pattern": "re.compile(r'\\b(LN2P\\.[A-Z]\\.\\d{3}\\.)(\\d)(\\.)')",
+        	"replacement": "lambda m: f'{m.group(1)}{replacement_digit}{m.group(3)}'"
+      },
+      	"starts_with_digit": {
+        	"pattern": "re.compile(r'^(\\d)(.*)')",
+        	"replacement": "lambda m: f'{replacement_digit}{m.group(2)}'"
+      }
+    },
+    "excel_parser": {
+		"LN2P.D.000.x... - в тексте": {
+			"pattern": "re.compile(r'\\b(LN2P\\.D\\.\\d\\d\\d\\.)\\d')",
+			"replacement": "lambda m: f'{m.group(1)}{self.replacement_digit}'"
+		},
+		"10UKD...": {
+			"pattern": "re.compile(r'\\b([0-9])(0[A-Z]{3})')",
+			"replacement": "lambda m: f'{self.replacement_digit}{m.group(2)}'"
+		},
+		"C02 -> C01(первая замена)": {
+			"pattern": "re.compile(r'(&R&\\d\\dC0)[2-9]\\b')",
+			"replacement": "lambda m: f'{m.group(1)}1'"
+		},
+		"C02 -> C01(вторая замена)": {
+			"pattern": "re.compile(r'&RC0[2-9]\\b')",
+			"replacement": "'&RC01'"
+		},
+		"LN2P.D.000.x... - нижний колонтитул": {
+			"pattern": "re.compile(r'((?:&[LCR](?:&\\d{2})?)?LN2P\\.D\\.\\d\\d\\d\\.)\\d')",
+			"replacement": "lambda m: f'{m.group(1)}{self.replacement_digit}'"
+		}
+    },
+    "word_parser": {
+		"LN2P.D.000.x... - в тексте": {
+			"pattern": "re.compile(r'\\b(LN2[P|O]\\.D\\.\\d\\d\\d\\.)\\d\\b')",
+			"replacement": "lambda m: f'{m.group(1)}{self.replacement_digit}'"
+		},
+		"10KBC50BR...": {
+			"pattern": "re.compile(r'([0-9])(0[A-Z]{3}\\d\\d[A-Z]{2}\\d{3})')",
+			"replacement": "lambda m: f'{self.replacement_digit}{m.group(2)}'"
+		},
+		"(10UKD)": {
+			"pattern": "re.compile(r'\\((\\d)0([A-Z]{3})\\)')",
+			"replacement": "lambda m: f'({self.replacement_digit}0{m.group(2)})'"
+		},
+		"C02 -> C01": {
+			"pattern": "re.compile(r'C0[2-9]\\b')",
+			"replacement": "'C01'"
+		},
+		"Блок № x": {
+			"pattern": "re.compile(r'(блока №\\s*)\\d\\b', re.IGNORECASE)",
+			"replacement": "lambda m: f'{m.group(1)}{self.replacement_digit}'"
+		},
+		"координаты":{
+			"pattern": "re.compile(r'8С\\+40\\.00')",
+			"replacement": "'10С+60.00'"
+		}
+    },
+    "dwg_parser": {
+		"LN2P.D.000.x... - в тексте": {
+			"pattern": "re.compile(r'(LN2P\\.D\\.\\d{3}\\.)\\d)",
+			"replacement": "lambda m: f'{m.group(1)}{self.replacement_digit}'"
+		},
+		"10UKA05R421_или_10KUB21AX001": {
+  			"pattern": "re.compile(r'(\\b|\\s)?\\d(\\d[A-Z]{3}\\d\\d[A-Z]{1,2}\\d{3,4})(\\b|\\s)?')",
+  			"replacement": "lambda m: f'{m.group(1) or ''}{self.replacement_digit}{m.group(2)}{m.group(3) or ''}'"
+		},
+		"10KBC50BR...": {
+			"pattern": "re.compile(r'([0-9])(0[A-Z]{3}\\d\\d[A-Z]{2}\\d{3})')",
+			"replacement": "lambda m: f'{self.replacement_digit}{m.group(2)}'"
+		},
+		"(10UKA)": {
+			"pattern": "re.compile(r'\\((\\d{2}[A-Z])\\)')",
+			"replacement": "lambda m: f'{self.replacement_digit}{m.group(1)[1:]}'"
+		},
+		"10KBC10": {
+			"pattern": "re.compile(r'\\b\\d\\d[A-Z]{3}\\d\\d\\b')",
+			"replacement": "lambda m: self.replacement_digit + m.group(0)[1:]"
+		},
+		"10KBC": {
+  			"pattern": "re.compile(r'\\b([0-9])0([A-Z]{3})\\b')",
+  			"replacement": "lambda m: f'{self.replacement_digit}0{m.group(2)}'"
+		},
+		"C0x-C01": {
+			"pattern": "re.compile(r'C0[2-9]\\b')",
+			"replacement": "'C01'"
+		},
+		"Блок x": {
+			"pattern": "re.compile(r'(Блок )\\d\\b', flags=re.IGNORECASE)",
+			"replacement": "lambda m: f'{m.group(1)}{self.replacement_digit}'"
+		}
+    },
+    "sha_parser": {
+		"LN2P.D.000.x... - в тексте": {
+			"pattern": "re.compile(r'\\b(LN2P\\.D\\.\\d{3}\\.)\\d')",
+			"replacement": "lambda m: f'{m.group(1)}{self.replacement_digit}'"
+		},
+		"x0&&&&&BQ2200": {
+			"pattern": "re.compile(r'([1-9])(0&&&&&[A-Z]{2}\\d{4})')",
+			"replacement": "lambda m: f'{self.replacement_digit}{m.group(2)}'"
+		},
+		"10KBC": {
+			"pattern": "re.compile(r'([1-9])(0[A-Z]{3})')",
+			"replacement": "lambda m: f'{self.replacement_digit}{m.group(2)}'"
+		},
+		"alt=C0x - alt=C01": {
+			"pattern": "re.compile(re.escape(r'<?xml version=\"1.0\"?><body><intstgxml stream=\"TitleArea\" select=\"/TitleArea/RevisionNumbers\" alt=\"RevN\"/></body>'))",
+			"replacement": "'C01'"
+		},
+		"C0x - C01": {
+			"pattern": "re.compile(r'\\bC0[2-9]\\b')",
+			"replacement": "'C01'"
+		}
+    }
+  },
+  "ЛАЭС Блок 4": {
+	"digits": [["4", "4"]],
+	"file_rename": {
+		"block_number_in_filename": {
+        	"pattern": "re.compile(r'\\b(LN2P\\.[A-Z]\\.\\d{3}\\.)(\\d)(\\.*)')",
+        	"replacement": "lambda m: f'{m.group(1)}{replacement_digit}{m.group(3)}'"
+      },
+      	"starts_with_digit": {
+        	"pattern": "re.compile(r'^(\\d)(.*)')",
+        	"replacement": "lambda m: f'{replacement_digit}{m.group(2)}'"
+      }
+    },
+    "excel_parser": {
+		"LN2P.D.000.x... - в тексте": {
+			"pattern": "re.compile(r'\\b(LN2P\\.D\\.\\d\\d\\d\\.)\\d')",
+			"replacement": "lambda m: f'{m.group(1)}{self.replacement_digit}'"
+		},
+		"10UKD...": {
+			"pattern": "re.compile(r'\\b([0-9])(0[A-Z]{3})')",
+			"replacement": "lambda m: f'{self.replacement_digit}{m.group(2)}'"
+		},
+		"C02 -> C01(первая замена)": {
+			"pattern": "re.compile(r'(&R&\\d\\dC0)[2-9]\\b')",
+			"replacement": "lambda m: f'{m.group(1)}1'"
+		},
+		"C02 -> C01(вторая замена)": {
+			"pattern": "re.compile(r'&RC0[2-9]\\b')",
+			"replacement": "'&RC01'"
+		},
+		"LN2P.D.000.x... - нижний колонтитул": {
+			"pattern": "re.compile(r'((?:&[LCR](?:&\\d{2})?)?LN2P\\.D\\.\\d\\d\\d\\.)\\d')",
+			"replacement": "lambda m: f'{m.group(1)}{self.replacement_digit}'"
+		}
+    },
+    "word_parser": {
+		"LN2P.D.000.x... - в тексте": {
+			"pattern": "re.compile(r'\\b(LN2[P|O]\\.D\\.\\d\\d\\d\\.)\\d\\b')",
+			"replacement": "lambda m: f'{m.group(1)}{self.replacement_digit}'"
+		},
+		"10KBC50BR...": {
+			"pattern": "re.compile(r'([0-9])(0[A-Z]{3}\\d\\d[A-Z]{2}\\d{3})')",
+			"replacement": "lambda m: f'{self.replacement_digit}{m.group(2)}'"
+		},
+		"(10UKD)": {
+			"pattern": "re.compile(r'\\((\\d)0([A-Z]{3})\\)')",
+			"replacement": "lambda m: f'({self.replacement_digit}0{m.group(2)})'"
+		},
+		"C02 -> C01": {
+			"pattern": "re.compile(r'C0[2-9]\\b')",
+			"replacement": "'C01'"
+		},
+		"Блок № x": {
+			"pattern": "re.compile(r'(блока №\\s*)\\d\\b', re.IGNORECASE)",
+			"replacement": "lambda m: f'{m.group(1)}{self.replacement_digit}'"
+		},
+		"координаты":{
+			"pattern": "re.compile(r'10С\\+60\\.00')",
+			"replacement": "'8С+40.00'"
+		}
+    },
+    "dwg_parser": {
+		"LN2P.D.000.x... - в тексте": {
+			"pattern": "re.compile(r'(LN2P\\.D\\.\\d{3}\\.)\\d')",
+			"replacement": "lambda m: f'{m.group(1)}{self.replacement_digit}'"
+		},
+		"10UKA05R421_или_10KUB21AX001": {
+  			"pattern": "re.compile(r'(\\b|\\s)?\\d(\\d[A-Z]{3}\\d\\d[A-Z]{1,2}\\d{3,4})(\\b|\\s)?')",
+  			"replacement": "lambda m: f'{m.group(1) or ''}{self.replacement_digit}{m.group(2)}{m.group(3) or ''}'"
+		},
+		"10KBC50BR...": {
+			"pattern": "re.compile(r'([0-9])(0[A-Z]{3}\\d\\d[A-Z]{2}\\d{3})')",
+			"replacement": "lambda m: f'{self.replacement_digit}{m.group(2)}'"
+		},
+		"(10UKA)": {
+			"pattern": "re.compile(r'\\((\\d{2}[A-Z])\\)')",
+			"replacement": "lambda m: f'{self.replacement_digit}{m.group(1)[1:]}'"
+		},
+		"10KBC10": {
+			"pattern": "re.compile(r'\\b\\d\\d[A-Z]{3}\\d\\d\\b')",
+			"replacement": "lambda m: self.replacement_digit + m.group(0)[1:]"
+		},
+		"10KBC": {
+  			"pattern": "re.compile(r'\\b([0-9])0([A-Z]{3})\\b')",
+  			"replacement": "lambda m: f'{self.replacement_digit}0{m.group(2)}'"
+		},
+		"C0x-C01": {
+			"pattern": "re.compile(r'C0[2-9]\\b')",
+			"replacement": "'C01'"
+		},
+		"Блок x": {
+			"pattern": "re.compile(r'(Блок )\\d\\b', flags=re.IGNORECASE)",
+			"replacement": "lambda m: f'{m.group(1)}{self.replacement_digit}'"
+		}
+    },
+    "sha_parser": {
+		"LN2P.D.000.x... - в тексте": {
+			"pattern": "re.compile(r'\\b(LN2P\\.D\\.\\d{3}\\.)\\d')",
+			"replacement": "lambda m: f'{m.group(1)}{self.replacement_digit}'"
+		},
+		"x0&&&&&BQ2200": {
+			"pattern": "re.compile(r'([1-9])(0&&&&&[A-Z]{2}\\d{4})')",
+			"replacement": "lambda m: f'{self.replacement_digit}{m.group(2)}'"
+		},
+		"10KBC": {
+			"pattern": "re.compile(r'([1-9])(0[A-Z]{3})')",
+			"replacement": "lambda m: f'{self.replacement_digit}{m.group(2)}'"
+		},
+		"alt=C0x - alt=C01": {
+			"pattern": "re.compile(re.escape(r'<?xml version=\"1.0\"?><body><intstgxml stream=\"TitleArea\" select=\"/TitleArea/RevisionNumbers\" alt=\"RevN\"/></body>'))",
+			"replacement": "'C01'"
+		},
+		"C0x - C01": {
+			"pattern": "re.compile(r'\\bC0[2-9]\\b')",
+			"replacement": "'C01'"
+		}
+    }
+  },
+  "АЭС Пакш Блоки 5 и 6": {
+	 "digits": [["5", "5"],["6", "6"]],
+	 "file_rename": {
+		"block_number_in_filename": {
+        	"pattern": "re.compile(r'\\b(PKS2\\.[A-Z]\\.[A-Z]\\d{3}\\.)(\\d)(\\.)')",
+        	"replacement": "lambda m: f'{m.group(1)}{replacement_digit}{m.group(3)}'"
+      },
+      	"starts_with_digit": {
+        	"pattern": "re.compile(r'^(\\d)(.*)')",
+        	"replacement": "lambda m: f'{replacement_digit}{m.group(2)}'"
+      }
+    },
+     "excel_parser": {
+		"PKS2.D.P000.x... - в тексте": {
+			"pattern": "re.compile(r'\\b(PKS2\\.D\\.[A-Z]\\d\\d\\d\\.)\\d')",
+			"replacement": "lambda m: f'{m.group(1)}{self.replacement_digit}'"
+		},
+		"50UKD...": {
+			"pattern": "re.compile(r'\\b([0-9])(0[A-Z]{3})')",
+			"replacement": "lambda m: f'{self.replacement_digit}{m.group(2)}'"
+		},
+		"C02 -> C01(первая замена)": {
+			"pattern": "re.compile(r'(&R&\\d\\dC0)[2-9]\\b')",
+			"replacement": "lambda m: f'{m.group(1)}1'"
+		},
+		"C02 -> C01(вторая замена)": {
+			"pattern": "re.compile(r'&RC0[2-9]\\b')",
+			"replacement": "'&RC01'"
+		},
+		"PKS2.D.P000.x... - нижний колонтитул": {
+			"pattern": "re.compile(r'((?:&[LCR](?:&\\d{2})?)?PKS2\\.D\\.[A-Z]\\d\\d\\d\\.)\\d')",
+			"replacement": "lambda m: f'{m.group(1)}{self.replacement_digit}'"
+		},
+		"50UKA50KTH10A":{
+			"pattern": "re.compile(r'\\b\\d(\\d[A-Z]{3})\\d(\\d[A-Z]{3}\\d\\d[A-Z])')",
+			"replacement": "lambda m: f'{self.replacement_digit}{m.group(1)}{self.replacement_digit}{m.group(2)}'"
+		},
+		"PKS2.U5.NI.50UKA.IWK":{
+			"pattern": "re.compile(r'\\b(PKS2\\.U)\\d(\\.NI\\.)\\d(\\d[A-Z]{3}\\.IWK)')",
+			"replacement": "lambda m: f'{m.group(1)}{self.replacement_digit}{m.group(2)}{self.replacement_digit}{m.group(3)}'"
+		}
+    },
+     "word_parser": {
+      "PKS2.D.P000.x... - в тексте": {
+        "pattern": "re.compile(r'\\b(PKS2\\.D\\.[A-Z]\\d\\d\\d\\.)\\d')",
+        "replacement": "lambda m: f'{m.group(1)}{self.replacement_digit}'"
+      },
+      "10KBC50BR...": {
+			"pattern": "re.compile(r'([0-9])(0[A-Z]{3}\\d\\d[A-Z]{2}\\d{3})')",
+			"replacement": "lambda m: f'{self.replacement_digit}{m.group(2)}'"
+		},
+		"(10UKD)": {
+			"pattern": "re.compile(r'\\((\\d)0([A-Z]{3})\\)')",
+			"replacement": "lambda m: f'({self.replacement_digit}0{m.group(2)})'"
+		},
+      "C02 -> C01_1": {
+        "pattern": "re.compile(r'C0[2-9]\\b')",
+        "replacement": "'C01'"
+      },
+      "Блок № x": {
+        "pattern": "re.compile(r'(блока №\\s*)\\d\\b', re.IGNORECASE)",
+        "replacement": "lambda m: f'{m.group(1)}{self.replacement_digit}'"
+      },
+      "unit x": {
+        "pattern": "re.compile(r'(Unit\\s*)\\d\\b', re.IGNORECASE)",
+        "replacement": "lambda m: f'{m.group(1)}{self.replacement_digit}'"
+      }
+    },
+	 "dwg_parser": {
+		"PKS2.D.P000.x... - в тексте": {
+			"pattern": "re.compile(r'(PKS2\\.D\\.[A-Z]\\d{3}\\.)\\d')",
+			"replacement": "lambda m: f'{m.group(1)}{self.replacement_digit}'"
+		},
+		"10UKA05R421_или_10KUB21AX001": {
+  			"pattern": "re.compile(r'(\\b|\\s)?\\d(\\d[A-Z]{3}\\d\\d[A-Z]{1,2}\\d{3,4})(\\b|\\s)?')",
+  			"replacement": "lambda m: f'{m.group(1) or ''}{self.replacement_digit}{m.group(2)}{m.group(3) or ''}'"
+		},
+		"10KBC50BR...": {
+			"pattern": "re.compile(r'([0-9])(0[A-Z]{3}\\d\\d[A-Z]{2}\\d{3})')",
+			"replacement": "lambda m: f'{self.replacement_digit}{m.group(2)}'"
+		},
+		"(10UKA)": {
+			"pattern": "re.compile(r'\\((\\d{2}[A-Z])\\)')",
+			"replacement": "lambda m: f'{self.replacement_digit}{m.group(1)[1:]}'"
+		},
+		"10KBC10": {
+			"pattern": "re.compile(r'\\b\\d\\d[A-Z]{3}\\d\\d\\b')",
+			"replacement": "lambda m: self.replacement_digit + m.group(0)[1:]"
+		},
+		"10KBC": {
+  			"pattern": "re.compile(r'\\b([0-9])0([A-Z]{3})\\b')",
+  			"replacement": "lambda m: f'{self.replacement_digit}0{m.group(2)}'"
+		},
+		"C0x-C01": {
+			"pattern": "re.compile(r'C0[2-9]\\b')",
+			"replacement": "'C01'"
+		},
+		"Unit x": {
+			"pattern": "re.compile(r'(Unit )\\d\\b', flags=re.IGNORECASE)",
+			"replacement": "lambda m: f'{m.group(1)}{self.replacement_digit}'"
+		},
+		"Блок x": {
+			"pattern": "re.compile(r'(Блок )\\d\\b', flags=re.IGNORECASE)",
+			"replacement": "lambda m: f'{m.group(1)}{self.replacement_digit}'"
+		}
+    },
+	 "sha_parser": {
+		"PKS2.D.P000.x... - в тексте": {
+			"pattern": "re.compile(r'\\b(PKS2\\.D\\.[A-Z]\\d{3}\\.)\\d')",
+			"replacement": "lambda m: f'{m.group(1)}{self.replacement_digit}'"
+		},
+		"x0&&&&&BQ2200": {
+			"pattern": "re.compile(r'([1-9])(0&&&&&[A-Z]{2}\\d{4})')",
+			"replacement": "lambda m: f'{self.replacement_digit}{m.group(2)}'"
+		},
+		"10KBC": {
+			"pattern": "re.compile(r'([1-9])(0[A-Z]{3})')",
+			"replacement": "lambda m: f'{self.replacement_digit}{m.group(2)}'"
+		},
+		"alt=C0x - alt=C01": {
+			"pattern": "re.compile(re.escape(r'<?xml version=\"1.0\"?><body><intstgxml stream=\"Revision\" select=\"/Revision/RevisionRecord[last()-0]/MajorRev_ForRevise\" alt=\"R\"/><intstgxml stream=\"Revision\" select=\"/Revision/RevisionRecord[last()-0]/MinorRev_ForRevise\" alt=\"NN\"/></body>'))",
+			"replacement": "'C01'"
+		},
+		"C0x - C01": {
+			"pattern": "re.compile(r'\\bC0[2-9]\\b')",
+			"replacement": "'C01'"
+		}
+    }
+  },
+"MB -> DC": {
+    "digits": [],
+    "file_rename": {
+      "replace_MB_to_DC_in_filename": {
+        "pattern": "re.compile(r'\\.MB\\.')",
+        "replacement": "'.DC.'"
+      },
+      "replace_SB_to_SD_in_filename": {
+        "pattern": "re.compile(r'\\.SB\\.')",
+        "replacement": "'.SD.'"
+      },
+	  "replace_SB_to_SD_in_filename_2": {
+        "pattern": "re.compile(r'MSB0')",
+        "replacement": "'MSD0'"
+      },
+      "replace_MLV_to_MLY_in_filename": {
+        "pattern": "re.compile(r'-MLV')",
+        "replacement": "'-MLY'"
+      }
+    },
+    "excel_parser": {
+      "replace_MB_to_DC_in_text": {
+        "pattern": "re.compile(r'\\.MB\\.')",
+        "replacement": "'.DC.'"
+      },
+      "replace_SB_to_SD_in_text": {
+        "pattern": "re.compile(r'MSB0')",
+        "replacement": "'MSD0'"
+      },
+	  "replace_SB_to_SD_in_shifr": {
+        "pattern": "re.compile(r'\\.SB\\.')",
+        "replacement": "'.SD.'"
+      },
+      "replace_MLV_to_MLY_in_text": {
+        "pattern": "re.compile(r'-MLV')",
+        "replacement": "'-MLY'"
+      },
+		"ZZI_del": {
+			"pattern": "re.compile(r'Задание заводу-изготовителю')",
+			"replacement": "''"
+		}
+    },
+    "word_parser": {
+      "replace_MB_to_DC_in_text": {
+        "pattern": "re.compile(r'\\.MB\\.')",
+        "replacement": "'.DC.'"
+      },
+      "replace_SB_to_SD_in_text": {
+        "pattern": "re.compile(r'\\.SB\\.')",
+        "replacement": "'.SD.'"
+      },
+      "replace_MLV_to_MLY_in_text": {
+        "pattern": "re.compile(r'-MLV')",
+        "replacement": "'-MLY'"
+      },
+		"ZZI_del": {
+			"pattern": "re.compile(r'Задание заводу-изготовителю')",
+			"replacement": "''"
+		}
+    },
+    "dwg_parser": {
+      "replace_MB_to_DC_in_text": {
+        "pattern": "re.compile(r'\\.MB\\.')",
+        "replacement": "'.DC.'"
+      },
+      "replace_SB_to_SD_in_text": {
+        "pattern": "re.compile(r'\\.SB\\.')",
+        "replacement": "'.SD.'"
+      },
+      "replace_MLV_to_MLY_in_text": {
+        "pattern": "re.compile(r'-MLV')",
+        "replacement": "'-MLY'"
+      },
+		"ZZI_del": {
+			"pattern": "re.compile(r'Задание заводу-изготовителю')",
+			"replacement": "''"
+		}
+    },
+    "sha_parser": {
+      "replace_MB_to_DC_in_text": {
+        "pattern": "re.compile(r'\\.MB\\.')",
+        "replacement": "'.DC.'"
+      },
+      "replace_SB_to_SD_in_text": {
+        "pattern": "re.compile(r'\\.SB\\.')",
+        "replacement": "'.SD.'"
+      },
+      "replace_MLV_to_MLY_in_text": {
+        "pattern": "re.compile(r'-MLV')",
+        "replacement": "'-MLY'"
+      }
+    }
+  }
+}

@@ -5,9 +5,6 @@ import fitz
 import logging
 import platform
 
-logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
-logger = logging.getLogger('PdfProcessor')
-
 class PdfProcessor:
     def __init__(self, replacement_digit, project, rules, log_callback=None, debug=False):
         self.replacement_digit = str(replacement_digit)

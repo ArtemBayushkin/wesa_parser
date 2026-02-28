@@ -1,4 +1,3 @@
-# excel_parser.py
 import os
 import re
 from shutil import rmtree
@@ -6,22 +5,17 @@ from tempfile import mkdtemp
 from zipfile import ZipFile
 from lxml import etree as ET
 import logging
-import json  # Оставляем, если нужно, но не используется для загрузки
+
 
 try:
     import win32com.client as win32
 except ImportError:
     win32 = None
 
-logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
-logger = logging.getLogger('ExcelProcessor')
-
 class ExcelProcessor:
-    def __init__(self, replacement_digit, project, rules, log_callback=None, debug=False):
+    def __init__(self, replacement_digit, project, rules, logger=None):
         self.replacement_digit = str(replacement_digit)
-        self.debug = debug
-        self.log = log_callback or (lambda msg: None)
-        self._log(f"Инициализация ExcelProcessor с цифрой: {self.replacement_digit} и проектом: {project}")
+        self.logger = logger or logging.getLogger()
         self.patterns = self._load_patterns(rules)
 
     def _load_patterns(self, rules):
@@ -32,26 +26,17 @@ class ExcelProcessor:
                     pattern = eval(rule["pattern"], {"re": re})
                     replacement = eval(rule["replacement"], {"self": self})
                     patterns.append((pattern, replacement))
-                    self._log(f"Загружено правило '{rule_name}'")
+                    self.logger.log(logging.DEBUG, f"Загружено правило '{rule_name}'")
                 except Exception as e:
-                    self._log(f"Ошибка загрузки правила '{rule_name}': {e}")
+                    pass
+                self.logger.log(logging.DEBUG, f"Ошибка загрузки правила '{rule_name}': {e}")
         except Exception as e:
-            self._log(f"Ошибка обработки rules: {e}")
+            pass
+            self.logger.log(logging.DEBUG, f"Ошибка обработки rules: {e}")
         if not patterns:
-            self._log("Предупреждение: Нет patterns для этого парсера")
+            pass
+            self.logger.log(logging.DEBUG, "Предупреждение: Нет patterns для этого парсера")
         return patterns
-    
-    def _log(self, message):
-        always_log = (
-                message.startswith("Успешно: ") or
-                message.startswith("Ошибка обработки: ") or
-                message.startswith("Критическая ошибка ") or
-                message.startswith("Файлы не найдены.") or
-                message.startswith("Пропуск ") or
-                message.startswith("Файл успешно обработан: ")
-        )
-        if self.debug or always_log:
-            self.log(message)
 
     def _apply_replacements(self, text):
         if text is None:
@@ -60,7 +45,7 @@ class ExcelProcessor:
         for pattern, repl in self.patterns:
             text = pattern.sub(repl, text)
         if text != original_text:
-            self._log(f"Замена текста: '{original_text}' → '{text}'")
+            self.logger.log(logging.DEBUG, f"Замена текста: '{original_text}' → '{text}'")
         return text
 
     def _process_xml_tree(self, tree):
@@ -81,14 +66,14 @@ class ExcelProcessor:
 
     def process_file(self, input_path, output_path):
         tmp_dir = mkdtemp()
-        self._log(f"Открыт файл: {input_path}")
+        self.logger.log(logging.DEBUG, f"Открыт файл: {input_path}")
         modified_files = set()
         converted = False
         temp_input = None
 
         try:
             if input_path.lower().endswith('.xls'):
-                self._log(f"Обнаружен .xls файл. Конвертируем в .xlsm...")
+                self.logger.log(logging.DEBUG, f"Обнаружен .xls файл. Конвертируем в .xlsm...")
                 temp_input = os.path.join(tmp_dir, 'converted.xlsm')
 
                 if win32:
@@ -98,7 +83,7 @@ class ExcelProcessor:
                     wb.SaveAs(os.path.abspath(temp_input), FileFormat=52)  # 52 = xlsm
                     wb.Close()
                     excel.Quit()
-                    self._log(f"Конвертация завершена: {temp_input}")
+                    self.logger.log(logging.DEBUG, f"Конвертация завершена: {temp_input}")
                 else:
                     raise ImportError(
                         "pywin32 не установлен. Установите 'pip install pywin32' для конвертации на Windows.")
@@ -116,7 +101,7 @@ class ExcelProcessor:
             for fname in target_files:
                 full_path = os.path.join(tmp_dir, fname)
                 if not os.path.exists(full_path) or os.path.getsize(full_path) == 0:
-                    self._log(f"Пропущен файл (отсутствует или пуст): {fname}")
+                    self.logger.log(logging.DEBUG, f"Пропущен файл (отсутствует или пуст): {fname}")
                     continue
                 try:
                     parser = ET.XMLParser(remove_blank_text=True)
@@ -125,19 +110,19 @@ class ExcelProcessor:
                     if modified:
                         tree.write(full_path, encoding='UTF-8', xml_declaration=True, pretty_print=True)
                         modified_files.add(fname)
-                        self._log(f"Файл изменен: {fname}")
+                        self.logger.log(logging.DEBUG, f"Файл изменен: {fname}")
                 except ET.XMLSyntaxError as e:
-                    self._log(f"Ошибка XML в {fname}: {e}")
+                    self.logger.log(logging.DEBUG, f"Ошибка XML в {fname}: {e}")
 
             with ZipFile(output_path, 'w') as zip_out:
                 for fname in filenames:
                     zip_out.write(os.path.join(tmp_dir, fname), fname)
 
-            self._log(f"Файл успешно обработан: {output_path}")
+            self.logger.log(logging.DEBUG, f"Файл успешно обработан: {output_path}")
             return True
 
         except Exception as e:
-            self._log(f"Ошибка обработки {input_path}: {str(e)}")
+            self.logger.log(logging.ERROR, f"Ошибка обработки {input_path}: {str(e)}")
             return False
 
         finally:

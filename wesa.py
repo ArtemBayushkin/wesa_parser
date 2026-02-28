@@ -10,19 +10,16 @@
 
 Программа предназначена для автоматизации задач в контексте АЭС (атомных электростанций).
 """
-import os, sys
-import re
-import glob
+import os
+import logging
 import tkinter as tk
+from Logger import GUILogHandler
 from tkinter import filedialog, messagebox, scrolledtext, ttk
 from datetime import datetime
-from excel_parser import ExcelProcessor
-from word_parser import WordProcessor
-from dwg_parser import AutoCADProcessor
-#from pdf_parser import PdfProcessor
 from PIL import Image, ImageTk
-import json
-import shutil
+from config_handler import config_data, config_projects, config_handler
+from file_hander import FileHandler
+
 
 class FileProcessorGUI:
     """Класс для графического интерфейса обработки файлов.
@@ -38,11 +35,10 @@ class FileProcessorGUI:
             input_dir (tk.StringVar): Путь к входной папке.
             output_dir (tk.StringVar): Путь к выходной папке.
             debug_logging (tk.BooleanVar): Флаг отладочного логирования.
-            log_file (file): Открытый файл для логирования (или None).
             config_data (dict): Загруженная конфигурация из JSON.
             lbl_project (tk.Label): Метка для отображения текущего проекта.
         """
-    def __init__(self, root):
+    def __init__(self, root, config_data=config_data):
         """Инициализирует GUI и атрибуты.
 
             Устанавливает заголовок, размер окна, переменные Tkinter, загружает конфиг
@@ -57,43 +53,17 @@ class FileProcessorGUI:
         self.replacement_digit = tk.StringVar()
         self.project = tk.StringVar()
         self.input_dir = tk.StringVar()
-        self.output_dir = tk.StringVar()
         self.debug_logging = tk.BooleanVar(value=False)
-        self.log_file = None
-        self.config_data = self._load_config()
         self.lbl_project = None
+        self.config_data = config_data
+        
         self.create_widgets()
-
-    def resource_path(self, relative_path):
-        """Возвращает абсолютный путь к ресурсу, учитывая упаковку PyInstaller.
-
-        Если приложение упаковано (--onefile), использует _MEIPASS; иначе — текущую директорию.
-
-        Args:
-            relative_path (str): Относительный путь к ресурсу (например, 'config.json').
-
-        Returns:
-            str: Абсолютный путь к ресурсу.
-        """
-        if hasattr(sys, '_MEIPASS'):
-            return os.path.join(sys._MEIPASS, relative_path)
-        return os.path.join(os.path.abspath("."), relative_path)
-
-    def _load_config(self):
-        config_path = self.resource_path('config.json')
-        if not os.path.exists(config_path):
-            messagebox.showerror("Ошибка", "Не удалось найти config.json в ресурсах")
-            sys.exit(1)
-        try:
-            with open(config_path, 'r', encoding='utf-8') as f:
-                return json.load(f)
-        except Exception as e:
-            messagebox.showerror("Ошибка", f"Не удалось загрузить config.json: {e}")
-            sys.exit(1)
-
+        self.setup_logger()
+        self.logger.log(logging.INFO, "===Запуск Программы===")
+    
     def create_widgets(self):
         tk.Label(self.root, text="Выберите проект:").pack(anchor="w", padx=10, pady=5)
-        projects = list(self.config_data.keys())
+        projects = config_projects
         self.project_combobox = ttk.Combobox(self.root, textvariable=self.project, values=projects, state="readonly")
         self.project_combobox.pack(anchor="w", padx=10, ipadx=50)
         self.project_combobox.bind("<<ComboboxSelected>>", self.update_digits)
@@ -118,12 +88,7 @@ class FileProcessorGUI:
         tk.Entry(frame_in, textvariable=self.input_dir, width=50).pack(side="left")
         tk.Button(frame_in, text="Выбрать...", command=self.choose_input_dir).pack(side="left", padx=5)
 
-        tk.Label(self.root, text="Папка для сохранения новых файлов:").pack(anchor="w", padx=10, pady=5)
-        frame_out = tk.Frame(self.root)
-        frame_out.pack(anchor="w", padx=10)
-        tk.Entry(frame_out, textvariable=self.output_dir, width=50).pack(side="left")
-        tk.Button(frame_out, text="Выбрать...", command=self.choose_output_dir).pack(side="left", padx=5)
-
+        
         tk.Checkbutton(self.root, text="Отладочные логи", variable=self.debug_logging).pack(anchor="w", padx=10, pady=5)
         btn_run = tk.Button(frame_right, text="Запустить обработку",
                             command=self.run_processing,
@@ -138,7 +103,24 @@ class FileProcessorGUI:
 
         tk.Label(self.root, text="by Артем Баюшкин", font=("Arial", 9, "italic")).pack(anchor="e", padx=10, pady=5)
         tk.Button(self.root, text="О программе", command=self.show_about).pack(anchor="e", padx=10, pady=5)
-        tk.Button(self.root, text="Редактировать config", command=self.edit_config).pack(anchor="e", padx=10, pady=5)
+        tk.Button(self.root, text="Редактировать config", command=config_handler.edit_config).pack(anchor="e", padx=10, pady=5)
+
+    def setup_logger(self):
+        self.logger = logging.getLogger(__name__)
+        
+        self.logger.setLevel(logging.DEBUG)
+               
+        # Создаем обработчик для текстового поля
+        text_handler = GUILogHandler(self.log_text)
+        text_handler.setLevel(logging.INFO)
+        
+        # Форматирование
+        formatter = logging.Formatter('%(asctime)s -%(levelname)s- %(message)s', datefmt="%X")
+        text_handler.setFormatter(formatter)
+        log_to_file_handler = logging.FileHandler(filename='l.txt', encoding='utf-8', mode='w')
+        log_to_file_handler.setFormatter(formatter)
+        self.logger.addHandler(text_handler)
+        self.logger.addHandler(log_to_file_handler)
 
     def update_digits(self, event=None):
         project = self.project.get()
@@ -158,236 +140,23 @@ class FileProcessorGUI:
         if folder:
             self.input_dir.set(folder)
 
-    def choose_output_dir(self):
-        folder = filedialog.askdirectory(title="Выберите папку для сохранения")
-        if folder:
-            self.output_dir.set(folder)
-
-    def edit_config(self):
-        config_path = self.resource_path('config.json')
-        if not os.path.exists(config_path):
-            src = self.resource_path('config.json')
-            if os.path.exists(src):
-                shutil.copy(src, config_path)
-            else:
-                messagebox.showerror("Ошибка", "Не удалось найти config.json")
-                return
-        os.startfile(config_path)
-        print('Файл config обновлен')
-
-    def log_to_file(self, message):
-        timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-        log_message = f"[{timestamp}] {message}"
-        if self.log_file:
-            try:
-                self.log_file.write(log_message + "\n")
-                self.log_file.flush()
-            except Exception as e:
-                self.log_to_gui(f"Ошибка записи в лог-файл: {str(e)}")
-
-    def log_to_gui(self, message):
-        timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-        log_message = f"[{timestamp}] {message}"
-        if (message.startswith("=== Запуск обработки ===") or
-            message.startswith("Успешно: ") or
-            message.startswith("Ошибка обработки: ") or
-            message.startswith("Обработка завершена. ")):
-            tag = "error" if message.startswith("Ошибка обработки: ") else None
-            self.log_text.insert(tk.END, log_message + "\n", tag)
-            self.log_text.see(tk.END)
-            self.root.update()
-
-    def log(self, message):
-        """
-        Данная функция предназначена для задания параметров записи логов в файл log.txt
-        """
-        always_log = (
-            message.startswith("=== Запуск обработки ===") or
-            message.startswith("Успешно: ") or
-            message.startswith("Ошибка обработки: ") or
-            message.startswith("Обработка завершена. ") or
-            message.startswith("Результаты сохранены в: ")
-        )
-        if self.debug_logging.get() or always_log:
-            self.log_to_file(message)
-        self.log_to_gui(message)
-
-    def select_files(self, input_dir):
-        '''
-        Метод для загрузки файлов различного расширения
-        :param input_dir:
-        :return:
-        '''
-        excel_files = glob.glob(os.path.join(input_dir, '*.xls*'))
-        word_files = glob.glob(os.path.join(input_dir, '*.do*'))
-        dwg_files = glob.glob(os.path.join(input_dir, '*.dwg'))
-        sha_files = glob.glob(os.path.join(input_dir, '*.sha'))
-        #pdf_files = glob.glob(os.path.join(input_dir, '*.pdf'))
-        files = excel_files + word_files + dwg_files + sha_files # + pdf_files
-        return files
-
-    def process_files(self, input_files, output_dir, replacement_digit):
-        os.makedirs(output_dir, exist_ok=True)
-        processed = 0
-        project = self.project.get()
-        sha_processor = None
-        sha_app_started = False
-
-        try:
-            for input_path in input_files:
-                try:
-                    filename = os.path.basename(input_path)
-                    name, ext = os.path.splitext(filename)
-
-                    new_name = name
-                    file_rename_rules = self.config_data.get(project, {}).get("file_rename", {})
-                    for rule_name, rule in file_rename_rules.items():
-                        try:
-                            pattern = eval(rule["pattern"], {"re": re})
-                            repl_str = rule["replacement"]
-                            repl = eval(repl_str, {"replacement_digit": replacement_digit})
-                            new_name = pattern.sub(repl, new_name)
-                        except Exception as e:
-                            self.log(
-                                f"Ошибка при применении правила переименования {rule_name} для {filename}: {str(e)}")
-                    if new_name == name:
-                        new_name = f"processed_{name}"
-
-                    if ext == ".xls":
-                        output_path = os.path.join(output_dir, new_name + ".xlsm")
-                    else:
-                        output_path = os.path.join(output_dir, new_name + ext)
-                    extension = ext.lower()
-
-                    if extension in ('.doc', '.docx', '.dotx'):
-                        rules = self.config_data.get(project, {}).get("word_parser", {})
-                        processor = WordProcessor(replacement_digit, project, rules, log_callback=self.log,
-                                                  debug=self.debug_logging.get())
-                        success = processor.process_file(input_path, output_path)
-                        if success:
-                            self.log(f"Успешно: {filename}")
-                            processed += 1
-                        else:
-                            self.log(f"Ошибка обработки: {filename}")
-
-                    elif extension in ('.xls', '.xlsx', '.xlsm'):
-                        rules = self.config_data.get(project, {}).get("excel_parser", {})
-                        processor = ExcelProcessor(replacement_digit, project, rules, log_callback=self.log,
-                                                   debug=self.debug_logging.get())
-                        success = processor.process_file(input_path, output_path)
-                        if success:
-                            self.log(f"Успешно: {filename}")
-                            processed += 1
-                        else:
-                            self.log(f"Ошибка обработки: {filename}")
-
-                    elif extension == '.dwg':
-                        rules = self.config_data.get(project, {}).get("dwg_parser", {})
-                        processor = AutoCADProcessor(replacement_digit, project, rules, log_callback=self.log,
-                                                     debug=self.debug_logging.get())
-                        output_path = os.path.join(output_dir, new_name + ext)  # Используем new_name!
-                        success = processor.process_file(input_path, output_path)
-                        if success:
-                            self.log(f"Успешно: {filename}")
-                            processed += 1
-                        else:
-                            self.log(f"Ошибка обработки: {filename}")
-
-                    #elif extension == '.pdf':
-                    #    rules = self.config_data.get(project, {}).get("pdf_parser", {})
-                    #    processor = PdfProcessor(replacement_digit, project, rules, log_callback=self.log,
-                    #                             debug=self.debug_logging.get())
-                    #    success = processor.process_file(input_path, output_path)
-                    #    if success:
-                    #        self.log(f"Успешно: {filename}")
-                    #        processed += 1
-                    #    else:
-                    #        self.log(f"Ошибка обработки: {filename}")
-
-                    elif extension == '.sha':
-                        rules = self.config_data.get(project, {}).get("sha_parser", {})
-                        if rules:  # Проверяем, есть ли правила
-                            if not sha_processor:
-                                from sha_parser import ShaProcessorWinAPI
-                                sha_processor = ShaProcessorWinAPI(replacement_digit, project, rules,
-                                                                   log_callback=self.log,
-                                                                   debug=self.debug_logging.get())
-                            if not sha_app_started:
-                                try:
-                                    sha_processor.start_app()
-                                    sha_app_started = True
-                                except Exception as e:
-                                    self.log(f"Ошибка запуска SmartSketch для {filename}: {str(e)}")
-                                    continue
-                            success = sha_processor.process_file(input_path, output_path)
-                            if success:
-                                self.log(f"Успешно: {filename}")
-                                processed += 1
-                            else:
-                                self.log(f"Ошибка обработки: {filename}")
-                        else:
-                            self.log(f"Пропуск {filename} (нет правил для sha_parser в config)")
-
-                    else:
-                        self.log(f"Пропуск {filename} (неподдерживаемый формат: {extension})")
-
-                except Exception as e:
-                    self.log(f"Критическая ошибка {filename}: {str(e)}")
-
-        finally:
-            if sha_app_started and sha_processor:
-                sha_processor.stop_app()
-
-        return processed
-
     def run_processing(self):
+        
         project = self.project.get()
-        if "digits" in self.config_data.get(project, {}):
-            repl_digit = self.replacement_digit.get().strip()
-            if not repl_digit.isdigit():
-                messagebox.showerror("Ошибка", "Введите корректную цифру для замены!")
-                return
-        else:
-            repl_digit = ""
-
         input_dir = self.input_dir.get().strip()
-        output_dir = self.output_dir.get().strip()
-
+        repl_digit = self.replacement_digit.get().strip()
+        
         if not os.path.isdir(input_dir):
             messagebox.showerror("Ошибка", "Выберите существующую папку с исходными файлами!")
             return
-        if not output_dir:
-            messagebox.showerror("Ошибка", "Выберите папку для сохранения файлов!")
-            return
+        
+        file_handler = FileHandler(input_dir, project, repl_digit, logger=self.logger)
+        file_handler.process_files()   
 
-        try:
-            log_file_path = os.path.join(output_dir, "log.txt")
-            self.log_file = open(log_file_path, 'a', encoding='utf-8')
-            self.log("=== Запуск обработки ===")
-        except Exception as e:
-            self.log(f"Ошибка открытия лог-файла: {str(e)}")
-            messagebox.showerror("Ошибка", f"Не удалось открыть лог-файл: {str(e)}")
-            return
-
-        try:
-            input_files = self.select_files(input_dir)
-            if not input_files:
-                self.log("Файлы не найдены.")
-                return
-
-            processed_count = self.process_files(input_files, output_dir, repl_digit)
-            self.log(f"Обработка завершена. Успешно обработано: {processed_count}/{len(input_files)}")
-            self.log(f"Результаты сохранены в: {output_dir}")
-
-            messagebox.showinfo(
-                "Готово",
-                f"Обработка завершена.\nУспешно обработано: {processed_count}/{len(input_files)}"
-            )
-        finally:
-            if self.log_file:
-                self.log_file.close()
-                self.log_file = None
-                self.log("Лог-файл закрыт")
+        messagebox.showinfo(
+            "Готово",
+            f"Обработка завершена.\nУспешно обработано: {file_handler.processed_files_counter}/{len(file_handler.files)}"
+        )
 
     def show_about(self):
         about_win = tk.Toplevel(self.root)
@@ -425,5 +194,5 @@ def set_icon(root, icon_path):
 if __name__ == "__main__":
     root = tk.Tk()
     app = FileProcessorGUI(root)
-    set_icon(root, app.resource_path("icon.png"))
+    set_icon(root, config_handler.get_relative_path("icon.ico"))
     root.mainloop()
