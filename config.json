@@ -3,8 +3,8 @@
     "digits": [["1", "1"], ["2", "2"]],
 	"file_rename": {
 		"block_number_in_filename": {
-        	"pattern": "re.compile(r'\\b(ED\\.[A-Z]\\.[A-Z]\\d{3}\\.)(\\d)(\\.)')",
-        	"replacement": "lambda m: f'{m.group(1)}{replacement_digit}{m.group(3)}'"
+        	"pattern": "re.compile(r'\\b(ED\\.[A-Z]\\.[A-Z]\\d{3}\\.)(\\d)(?=\\.)')",
+        	"replacement": "lambda m: f'{m.group(1)}{replacement_digit}'"
       },
       	"starts_with_digit": {
         	"pattern": "re.compile(r'^(\\d)(.*)')",
